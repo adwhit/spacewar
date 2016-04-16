@@ -1,0 +1,7 @@
+[package]
+name = "spacewar"
+version = "0.1.0"
+authors = ["Alex Whitney <alex.whitney@cantab.net>"]
+
+[dependencies]
+glium = "*"
