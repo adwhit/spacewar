@@ -254,8 +254,20 @@ fn trans_mat(x: f32, y:f32) -> [[f32; 4]; 4] {
 struct Window {
     display: glium::backend::glutin_backend::GlutinFacade,
     program: glium::Program,
-    keys_down: HashSet<VirtualKeyCode>
+    events: Events
 }
+
+struct Events(HashSet<VirtualKeyCode>);
+
+impl Events {
+    fn update_keysdown(&mut self, keystate: ElementState, key: VirtualKeyCode) {
+        let _ = match keystate {
+            ElementState::Pressed => self.0.insert(key),
+            ElementState::Released => self.0.remove(&key)
+        };
+    }
+}
+
 
 impl Window {
     fn new() -> Window {
@@ -274,17 +286,9 @@ impl Window {
         Window {
             display: display,
             program: program,
-            keys_down: HashSet::new()
+            events: Events(HashSet::new())
         }
     }
-
-    fn update_keysdown(&mut self, keystate: ElementState, key: VirtualKeyCode) {
-        let _ = match keystate {
-            ElementState::Pressed => self.keys_down.insert(key),
-            ElementState::Released => self.keys_down.remove(&key)
-        };
-    }
-
 
     fn render(&self, board: &Board, assets: &Assets) {
         let mut target = self.display.draw();
@@ -299,7 +303,7 @@ impl Window {
                         trans: trans_mat(board.ship.pos.x, board.ship.pos.y)
                     ),
                     &assets.draw_params).unwrap();
-        if self.keys_down.contains(&VirtualKeyCode::Up) {
+        if self.events.0.contains(&VirtualKeyCode::Up) {
             target.draw(&assets.thruster_vx_buf,
                         &glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
                         &self.program,
@@ -356,14 +360,13 @@ fn game_loop(mut board: Board, mut window: Window) {
         board.step();
         window.render(&board, &assets);
         for ev in window.display.poll_events() {
-            use glium::glutin::VirtualKeyCode::*;
             match ev {
                 Event::Closed => return,
-                Event::KeyboardInput(keystate, _, Some(key)) => window.update_keysdown(keystate, key),
+                Event::KeyboardInput(keystate, _, Some(key)) => window.events.update_keysdown(keystate, key),
                 _ => ()
             }
         }
-        for key in &window.keys_down {
+        for key in &window.events.0 {
             use glium::glutin::VirtualKeyCode::*;
             match *key {
                 Left => board.ship.orient += 10.0 * PI / 180.,
@@ -371,7 +374,7 @@ fn game_loop(mut board: Board, mut window: Window) {
                 Up => board.ship.accel(),
                 Down => board.ship.decel(),
                 Space => board.fire(),
-                _ => ()
+                Q => return
             }
         }
         board.tidy();
