@@ -6,3 +6,4 @@ authors = ["Alex Whitney <alex.whitney@cantab.net>"]
 [dependencies]
 glium = "*"
 nalgebra = "*"
+rand = "*"
